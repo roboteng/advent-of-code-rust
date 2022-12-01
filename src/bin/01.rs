@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 pub fn part_one(input: &str) -> Option<u32> {
     input
         .split("\n\n")
@@ -24,7 +22,7 @@ pub fn part_two(input: &str) -> Option<u32> {
     let mut food: Vec<_> = food_per_elf.collect();
     food.sort();
     let len = food.len();
-    let last_three = food.iter().skip(len - 3).map(|&a| a);
+    let last_three = food.iter().skip(len - 3).copied();
     last_three.reduce(|a, b| a + b)
 }
 
@@ -41,12 +39,12 @@ mod tests {
     #[test]
     fn test_part_one() {
         let input = advent_of_code::read_file("examples", 1);
-        assert_eq!(part_one(&input), None);
+        assert_eq!(part_one(&input), Some(24000));
     }
 
     #[test]
     fn test_part_two() {
         let input = advent_of_code::read_file("examples", 1);
-        assert_eq!(part_two(&input), None);
+        assert_eq!(part_two(&input), Some(45000));
     }
 }
