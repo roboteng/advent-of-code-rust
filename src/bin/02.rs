@@ -27,7 +27,7 @@ impl RPS {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Outcome {
     Win,
     Draw,
@@ -63,17 +63,28 @@ impl From<&str> for RPSMatch {
             "C" => RPS::Scissors,
             x => panic!("Unknown string: {}", x),
         };
-        let p2 = match chars.next().unwrap() {
-            "X" => RPS::Rock,
-            "Y" => RPS::Paper,
-            "Z" => RPS::Scissors,
+        let outcome = match chars.next().unwrap() {
+            "X" => Outcome::Lose,
+            "Y" => Outcome::Draw,
+            "Z" => Outcome::Win,
             x => panic!("Unknown string: {}", x),
+        };
+        let p2 = {
+            if RPS::Rock.fight(p1) == outcome {
+                RPS::Rock
+            } else if RPS::Paper.fight(p1) == outcome {
+                RPS::Paper
+            } else {
+                RPS::Scissors
+            }
         };
         Self { p1, p2 }
     }
 }
 
 pub fn part_one(input: &str) -> Option<u32> {
+    let m = RPSMatch::from("A Z");
+    println!("{:?}", m);
     let score = input
         .lines()
         .map(|line| line.into())
@@ -84,7 +95,13 @@ pub fn part_one(input: &str) -> Option<u32> {
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
-    None
+    let score = input
+        .lines()
+        .map(|line| line.into())
+        .map(|m: RPSMatch| m.score().1)
+        .reduce(|a, b| a + b)
+        .unwrap();
+    Some(score)
 }
 
 fn main() {
