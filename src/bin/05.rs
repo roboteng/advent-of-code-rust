@@ -31,6 +31,19 @@ fn move_crates(mut stacks: Vec<Stack>, m: Move) -> Vec<Stack> {
     stacks
 }
 
+fn move_crates_at_once(mut stacks: Vec<Stack>, m: Move) -> Vec<Stack> {
+    let mut temp_stack = Vec::new();
+    for _ in 0..m.count {
+        let crate_ = stacks[m.origin - 1].pop().unwrap();
+        temp_stack.push(crate_);
+    }
+    for _ in 0..m.count {
+        let crate_ = temp_stack.pop().unwrap();
+        stacks[m.end - 1].push(crate_);
+    }
+    stacks
+}
+
 fn parse_input(input: &str) -> (Vec<Stack>, Vec<Move>) {
     let mut halves = input.split("\n\n");
     let stacks = halves.next().unwrap();
@@ -81,7 +94,13 @@ pub fn part_one(input: &str) -> Option<String> {
 }
 
 pub fn part_two(input: &str) -> Option<String> {
-    None
+    let (mut stacks, moves) = parse_input(input);
+    for m in moves {
+        stacks = move_crates_at_once(stacks, m);
+    }
+
+    let k: String = stacks.iter().map(|stack| stack.last().unwrap()).collect();
+    Some(k)
 }
 
 fn main() {
@@ -103,6 +122,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let input = advent_of_code::read_file("examples", 5);
-        assert_eq!(part_two(&input), None);
+        assert_eq!(part_two(&input), Some("MCD".to_string()));
     }
 }
