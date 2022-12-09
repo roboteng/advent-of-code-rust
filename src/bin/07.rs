@@ -61,38 +61,56 @@ impl<'a> Folder<'a> {
 
 #[derive(Debug, Clone)]
 struct FolderWalker<'a> {
-    folder: Folder<'a>,
-    i: usize,
-    child_walker: Option<Box<FolderWalker<'a>>>,
+    folder: &'a Folder<'a>,
+    state: NextIteration<'a>,
+}
+
+#[derive(Debug, Clone)]
+enum NextIteration<'a> {
+    Own,
+    StartChild(usize),
+    Child(usize, Box<FolderWalker<'a>>),
+    Done,
+}
+
+impl<'a> FolderWalker<'a> {
+    fn new(folder: &'a Folder<'a>) -> Self {
+        Self {
+            folder,
+            state: NextIteration::Own,
+        }
+    }
 }
 
 impl<'a> Iterator for FolderWalker<'a> {
-    type Item = Folder<'a>;
+    type Item = &'a Folder<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let this = self.clone();
-        match this.child_walker {
-            Some(mut child_walker) => match child_walker.next() {
-                Some(f) => Some(f),
+        match self.state.clone() {
+            NextIteration::Own => {
+                self.state = NextIteration::StartChild(0);
+                Some(self.folder)
+            }
+            NextIteration::StartChild(i) => {
+                match self.folder.folders.get(i) {
+                    Some(folder) => {
+                        self.state = NextIteration::Child(i, Box::new(FolderWalker::new(folder)))
+                    }
+                    None => self.state = NextIteration::Done,
+                }
+                self.next()
+            }
+            NextIteration::Child(i, mut child) => match child.next() {
+                Some(folder) => {
+                    self.state = NextIteration::Child(i, child);
+                    Some(folder)
+                }
                 None => {
-                    self.child_walker = None;
+                    self.state = NextIteration::StartChild(i + 1);
                     self.next()
                 }
             },
-            None => {
-                if self.i < self.folder.folders.len() {
-                    let f = &self.folder.folders[self.i];
-                    self.i += 1;
-                    self.child_walker = Some(Box::new(FolderWalker {
-                        folder: f.clone(),
-                        i: 0,
-                        child_walker: None,
-                    }));
-                    Some(f.clone())
-                } else {
-                    None
-                }
-            }
+            NextIteration::Done => None,
         }
     }
 }
@@ -168,23 +186,62 @@ pub fn part_one(input: &str) -> Option<u32> {
                     }
                 }
             }
-            let walker = FolderWalker {
-                folder: root,
-                i: 0,
-                child_walker: None,
-            };
-            for f in walker {
-                println!("{f:?}");
-            }
+            let walker = FolderWalker::new(&root);
+            Some(
+                walker
+                    .map(|dir| dir.size())
+                    .filter(|&size| size <= 100_000)
+                    .sum(),
+            )
         }
-        Err(err) => eprintln!("{err}"),
+        Err(err) => panic!("{err}"),
     }
-
-    None
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
-    None
+    let (_, cmds) = commands(input).unwrap();
+    let mut root = Folder {
+        name: "",
+        files: vec![],
+        folders: vec![],
+    };
+    let mut current_path = Vec::new();
+    for cmd in cmds {
+        let current = root.find(&current_path[0..]);
+        match cmd {
+            Op::Cd(Cd::Root) => {}
+            Op::Cd(Cd::Up) => {
+                current_path.pop();
+            }
+            Op::Cd(Cd::Down(dir)) => {
+                current_path.push(dir);
+            }
+
+            Op::Ls(fs_objs) => {
+                for obj in fs_objs {
+                    match obj {
+                        FSObj::File { size, name } => current.files.push(File { size, name }),
+                        FSObj::Dir(dir) => current.folders.push(Folder {
+                            name: dir,
+                            files: Vec::new(),
+                            folders: Vec::new(),
+                        }),
+                    }
+                }
+            }
+        }
+    }
+    let walker = FolderWalker::new(&root);
+    let total_size = 70000000;
+    let required_space = 30000000;
+    let max_size = total_size - required_space;
+    let current_size = root.size();
+    let mut sizes = walker
+        .map(|dir| dir.size())
+        .filter(|size| current_size - size < max_size)
+        .collect::<Vec<u32>>();
+    sizes.sort();
+    Some(sizes[0])
 }
 
 fn main() {
@@ -208,12 +265,12 @@ dir a";
     #[test]
     fn test_part_one() {
         let input = advent_of_code::read_file("examples", 7);
-        assert_eq!(part_one(&input), None);
+        assert_eq!(part_one(&input), Some(95437));
     }
 
     #[test]
     fn test_part_two() {
         let input = advent_of_code::read_file("examples", 7);
-        assert_eq!(part_two(&input), None);
+        assert_eq!(part_two(&input), Some(24933642));
     }
 }
