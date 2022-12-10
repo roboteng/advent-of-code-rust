@@ -1,3 +1,4 @@
+#![feature(iter_intersperse)]
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -49,7 +50,12 @@ impl Processor {
 }
 
 fn state_at(states: &Vec<(u32, i32)>, at: u32) -> i32 {
-    states.iter().filter(|s| s.0 < at).last().unwrap().1
+    states
+        .iter()
+        .filter(|s| s.0 <= at)
+        .last()
+        .unwrap_or(&(0, 1))
+        .1
 }
 
 fn cycle_n_at(n: u32) -> u32 {
@@ -69,7 +75,6 @@ pub fn part_one(input: &str) -> Option<i32> {
         p.tick();
         states.push((p.n_cycles, p.state));
     }
-    let twenty = state_at(&states, 20);
     let total_cycles = states[states.len() - 1].0;
     let mut i = 0;
     let mut total = 0;
@@ -82,6 +87,38 @@ pub fn part_one(input: &str) -> Option<i32> {
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
+    let (input, instrs) = instructions(input).unwrap();
+    let mut p = Processor {
+        n_cycles: 0,
+        intructions: instrs,
+        state: 1,
+    };
+    let mut states = Vec::new();
+    states.push((p.n_cycles, p.state));
+    while p.intructions.len() > 0 {
+        p.tick();
+        states.push((p.n_cycles, p.state));
+    }
+    let mut screen = Vec::new();
+    for row in 0..6 {
+        let mut pixel_row = Vec::new();
+        for column in 0..40 {
+            let i = 40 * row + column;
+            let state = state_at(&states, i);
+            println!("State: {state}, Position: {i}");
+            pixel_row.push(match column as i32 - state {
+                -1..=1 => '#',
+                _ => ' ',
+            });
+        }
+        screen.push(pixel_row);
+    }
+    let s = screen
+        .iter()
+        .map(|row| row.iter().collect::<String>())
+        .intersperse('\n'.to_string())
+        .collect::<String>();
+    println!("{}", s);
     None
 }
 
