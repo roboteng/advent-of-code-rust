@@ -30,6 +30,7 @@ enum FSObj<'a> {
 #[derive(Debug, Clone)]
 struct File<'a> {
     size: u32,
+    #[allow(dead_code)]
     name: &'a str,
 }
 

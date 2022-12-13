@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    character::complete::{self, multispace0, multispace1, newline},
+    character::complete::{self, multispace1, newline},
     multi::{separated_list0, separated_list1},
     sequence::{delimited, separated_pair},
     IResult,

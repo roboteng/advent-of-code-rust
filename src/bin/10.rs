@@ -63,7 +63,7 @@ fn cycle_n_at(n: u32) -> u32 {
 }
 
 pub fn part_one(input: &str) -> Option<i32> {
-    let (input, instrs) = instructions(input).unwrap();
+    let (_, instrs) = instructions(input).unwrap();
     let mut p = Processor {
         n_cycles: 0,
         intructions: instrs,
@@ -87,7 +87,7 @@ pub fn part_one(input: &str) -> Option<i32> {
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
-    let (input, instrs) = instructions(input).unwrap();
+    let (_, instrs) = instructions(input).unwrap();
     let mut p = Processor {
         n_cycles: 0,
         intructions: instrs,

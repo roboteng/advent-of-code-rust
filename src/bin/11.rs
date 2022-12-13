@@ -38,7 +38,6 @@ enum Op {
 #[derive(Debug, Copy, Clone)]
 struct Expr {
     op: Op,
-    left: Val,
     right: Val,
 }
 
@@ -70,14 +69,7 @@ fn operation(input: &str) -> IResult<&str, Expr> {
     let (input, right) = alt((old, const_))(input)?;
     let (input, _) = newline(input)?;
 
-    Ok((
-        input,
-        Expr {
-            op,
-            left: Val::Old,
-            right,
-        },
-    ))
+    Ok((input, Expr { op, right }))
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -109,6 +101,7 @@ fn test(input: &str) -> IResult<&str, Test> {
 
 #[derive(Debug)]
 struct Monkey {
+    #[allow(dead_code)]
     id: u32,
     items: Vec<u64>,
     operation: Expr,
