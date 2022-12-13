@@ -1,29 +1,32 @@
-pub fn part_one(input: &str) -> Option<u32> {
+use std::collections::BinaryHeap;
+
+fn food_per_elf(input: &str) -> Vec<u32> {
     input
         .split("\n\n")
         .map(|lines| {
             lines
                 .lines()
                 .map(|line| line.parse::<u32>().unwrap_or(0))
-                .reduce(|a, b| a + b)
-                .unwrap()
+                .sum::<u32>()
         })
-        .reduce(|a, b| if a > b { a } else { b })
+        .collect()
+}
+
+pub fn part_one(input: &str) -> Option<u32> {
+    Some(
+        food_per_elf(input)
+            .iter()
+            .reduce(|a, b| a.max(b))
+            .copied()
+            .unwrap(),
+    )
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
-    let food_per_elf = input.split("\n\n").map(|lines| {
-        lines
-            .lines()
-            .map(|line| line.parse::<u32>().unwrap_or(0))
-            .reduce(|a, b| a + b)
-            .unwrap()
-    });
-    let mut food: Vec<_> = food_per_elf.collect();
-    food.sort();
-    let len = food.len();
-    let last_three = food.iter().skip(len - 3).copied();
-    last_three.reduce(|a, b| a + b)
+    let food: Vec<u32> = food_per_elf(input);
+    let maxes = BinaryHeap::from_iter(food);
+
+    Some(maxes.iter().take(3).sum::<u32>())
 }
 
 fn main() {
