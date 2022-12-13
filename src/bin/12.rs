@@ -124,15 +124,12 @@ struct Point {
     dist_to_end: u32,
 }
 
-fn a_star(grid: &Grid, start: Pos, goal: Pos) -> u32 {
-    println!("start is {:?}", grid.at(start));
-    println!("end is {:?}", grid.at(goal));
+fn a_star(grid: &Grid, start: Pos, goal: Pos) -> Option<u32> {
     let mut known = vec![start];
     let mut visited: HashSet<Pos> = HashSet::new();
     let mut path_length: HashMap<Pos, u32> = HashMap::new();
-    let mut path_to: HashMap<Pos, Pos> = HashMap::new();
     path_length.insert(start, 0);
-    while known[0] != goal {
+    while known.len() > 0 && known[0] != goal {
         let leader = known[0].clone();
         known = known[1..].to_vec();
         visited.insert(leader);
@@ -144,12 +141,10 @@ fn a_star(grid: &Grid, start: Pos, goal: Pos) -> u32 {
                     let prev_path_length = k.get(&neighbor).unwrap();
                     if *prev_path_length > *current_path_length + 1 {
                         path_length.insert(neighbor, *current_path_length + 1);
-                        path_to.insert(neighbor, leader);
                     }
                 } else {
                     known.push(neighbor);
                     path_length.insert(neighbor, current_path_length + 1);
-                    path_to.insert(neighbor, leader);
                 }
             }
         }
@@ -158,24 +153,35 @@ fn a_star(grid: &Grid, start: Pos, goal: Pos) -> u32 {
                 .cmp(&(&b.dist_sq(&goal) + path_length.get(&b).unwrap()))
         });
     }
-    let mut end = goal;
-    while end != start {
-        println!("{end:?}");
-        end = *path_to.get(&end).unwrap();
-    }
 
-    *path_length.get(&known[0]).unwrap()
+    known.get(0).map(|k| path_length.get(k).unwrap()).copied()
 }
 
 pub fn part_one(input: &str) -> Option<u32> {
     let grid = input.parse::<Grid>().unwrap();
-    let k = a_star(&grid, grid.start(), grid.end());
+    let k = a_star(&grid, grid.start(), grid.end()).unwrap();
     println!("{k:?}");
     Some(k)
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
-    None
+    let grid = input.parse::<Grid>().unwrap();
+    let mut starting_points = Vec::new();
+    for (y, row) in grid.points.iter().enumerate() {
+        for (x, &char) in row.iter().enumerate() {
+            if char == 'a' || char == 'S' {
+                starting_points.push(Pos { x, y });
+            }
+        }
+    }
+    let mut dists: Vec<u32> = starting_points
+        .iter()
+        .map(|start| a_star(&grid, *start, grid.end()))
+        .filter_map(|len| len)
+        .collect();
+    dists.sort();
+
+    Some(dists[0])
 }
 
 fn main() {
