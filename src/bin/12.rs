@@ -23,7 +23,7 @@ impl Pos {
 impl Grid {
     fn at(&self, pos: Pos) -> Option<char> {
         match self.points.get(pos.y) {
-            Some(row) => row.get(pos.x).map(|&c| c),
+            Some(row) => row.get(pos.x).copied(),
             None => None,
         }
     }
@@ -100,8 +100,8 @@ impl Grid {
 fn height(c: char) -> u8 {
     match c {
         'a'..='z' => c as u8,
-        'S' => 'a' as u8,
-        'E' => 'z' as u8,
+        'S' => b'a',
+        'E' => b'z',
         _ => 0,
     }
 }
@@ -129,8 +129,8 @@ fn a_star(grid: &Grid, start: Pos, goal: Pos) -> Option<u32> {
     let mut visited: HashSet<Pos> = HashSet::new();
     let mut path_length: HashMap<Pos, u32> = HashMap::new();
     path_length.insert(start, 0);
-    while known.len() > 0 && known[0] != goal {
-        let leader = known[0].clone();
+    while !known.is_empty() && known[0] != goal {
+        let leader = known[0];
         known = known[1..].to_vec();
         visited.insert(leader);
         let k = path_length.clone();
@@ -149,8 +149,8 @@ fn a_star(grid: &Grid, start: Pos, goal: Pos) -> Option<u32> {
             }
         }
         known.sort_by(|a, b| {
-            (a.dist_sq(&goal) + path_length.get(&a).unwrap())
-                .cmp(&(&b.dist_sq(&goal) + path_length.get(&b).unwrap()))
+            (a.dist_sq(&goal) + path_length.get(a).unwrap())
+                .cmp(&(&b.dist_sq(&goal) + path_length.get(b).unwrap()))
         });
     }
 
@@ -176,8 +176,7 @@ pub fn part_two(input: &str) -> Option<u32> {
     }
     let mut dists: Vec<u32> = starting_points
         .iter()
-        .map(|start| a_star(&grid, *start, grid.end()))
-        .filter_map(|len| len)
+        .filter_map(|start| a_star(&grid, *start, grid.end()))
         .collect();
     dists.sort();
 

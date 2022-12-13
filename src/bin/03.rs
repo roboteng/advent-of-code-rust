@@ -16,9 +16,9 @@ fn halves(s: &str) -> [&str; 2] {
 
 fn priority(letter: &char) -> u32 {
     match letter {
-        'a'..='z' => (*letter as u8 - 'a' as u8 + 1) as u32,
-        'A'..='Z' => (*letter as u8 - 'A' as u8 + 27) as u32,
-        _ => panic!("Unknown letter {}", letter),
+        'a'..='z' => (*letter as u8 - b'a' + 1) as u32,
+        'A'..='Z' => (*letter as u8 - b'A' + 27) as u32,
+        _ => panic!("Unknown letter {letter}"),
     }
 }
 

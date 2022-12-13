@@ -71,7 +71,7 @@ pub fn part_one(input: &str) -> Option<i32> {
     };
     let mut states = Vec::new();
     states.push((p.n_cycles, p.state));
-    while p.intructions.len() > 0 {
+    while !p.intructions.is_empty() {
         p.tick();
         states.push((p.n_cycles, p.state));
     }
@@ -95,7 +95,7 @@ pub fn part_two(input: &str) -> Option<u32> {
     };
     let mut states = Vec::new();
     states.push((p.n_cycles, p.state));
-    while p.intructions.len() > 0 {
+    while !p.intructions.is_empty() {
         p.tick();
         states.push((p.n_cycles, p.state));
     }
@@ -118,7 +118,7 @@ pub fn part_two(input: &str) -> Option<u32> {
         .map(|row| row.iter().collect::<String>())
         .intersperse('\n'.to_string())
         .collect::<String>();
-    println!("{}", s);
+    println!("{s}");
     None
 }
 

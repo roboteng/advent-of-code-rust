@@ -136,7 +136,7 @@ fn new_tail_pos(head: Pos, old_tail: Pos) -> Pos {
         Pos(2, 0) => old_tail.add(&Pos(1, 0)),
         Pos(2, 1) => old_tail.add(&Pos(1, 1)),
         Pos(2, 2) => old_tail.add(&Pos(1, 1)),
-        _ => panic!("Unknown delta: {:?}", delta),
+        _ => panic!("Unknown delta: {delta:?}"),
     }
 }
 

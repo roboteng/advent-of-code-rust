@@ -43,7 +43,7 @@ struct Folder<'a> {
 
 impl<'a> Folder<'a> {
     fn find(&mut self, path: &[&'a str]) -> &mut Folder<'a> {
-        if path.len() == 0 {
+        if path.is_empty() {
             return self;
         }
         for folder in &mut self.folders {

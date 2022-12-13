@@ -58,7 +58,7 @@ fn op(input: &str) -> IResult<&str, Op> {
         match op {
             "* " => Op::Times,
             "+ " => Op::Plus,
-            _ => panic!("couldn't parse: {}", op),
+            _ => panic!("couldn't parse: {op}"),
         },
     ))
 }
@@ -137,11 +137,11 @@ fn evaluate(old: u128, expr: Expr) -> u128 {
 }
 
 fn process_monkey(i: usize, monkeys: &mut Vec<Monkey>) {
-    while monkeys[i].items.len() > 0 {
+    while !monkeys[i].items.is_empty() {
         let mut item = monkeys[i].items[0];
         monkeys[i].items = monkeys[i].items[1..].to_vec();
         item = evaluate(item as u128, monkeys[i].operation) as u64;
-        item = item / 3;
+        item /= 3;
         monkeys[i].inspections += 1;
         let test = monkeys[i].test;
         if item % monkeys[i].test.divisible_by as u64 == 0 {
@@ -153,7 +153,7 @@ fn process_monkey(i: usize, monkeys: &mut Vec<Monkey>) {
 }
 
 fn process_monkey_2(i: usize, monkeys: &mut Vec<Monkey>, modulus: u128) {
-    while monkeys[i].items.len() > 0 {
+    while !monkeys[i].items.is_empty() {
         let mut item = monkeys[i].items[0];
         monkeys[i].items = monkeys[i].items[1..].to_vec();
         let k = evaluate(item as u128, monkeys[i].operation);

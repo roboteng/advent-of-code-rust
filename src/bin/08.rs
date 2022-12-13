@@ -5,7 +5,7 @@ struct Forest {
 impl Forest {
     fn trees_left(&self, x: usize, y: usize) -> Vec<u8> {
         let k = &self.trees[y][0..x].to_vec();
-        k.iter().rev().map(|u| *u).collect()
+        k.iter().rev().copied().collect()
     }
     fn trees_right(&self, x: usize, y: usize) -> Vec<u8> {
         let k = &self.trees[y][(x + 1)..].to_vec();
@@ -16,7 +16,7 @@ impl Forest {
         for pos in 0..y {
             vec.push(self.trees[pos][x])
         }
-        vec.iter().rev().map(|u| *u).collect()
+        vec.iter().rev().copied().collect()
     }
     fn trees_down(&self, x: usize, y: usize) -> Vec<u8> {
         let mut vec = Vec::new();
@@ -66,7 +66,7 @@ fn visible_trees(height: u8, trees: &Vec<u8>) -> u32 {
 pub fn part_one(input: &str) -> Option<u32> {
     let trees: Vec<Vec<u8>> = input
         .lines()
-        .map(|l| l.chars().map(|c| c as u8 - '0' as u8).collect())
+        .map(|l| l.chars().map(|c| c as u8 - b'0').collect())
         .collect();
     let width = trees[0].len();
     let height = trees.len();
@@ -86,7 +86,7 @@ pub fn part_one(input: &str) -> Option<u32> {
 pub fn part_two(input: &str) -> Option<u32> {
     let trees: Vec<Vec<u8>> = input
         .lines()
-        .map(|l| l.chars().map(|c| c as u8 - '0' as u8).collect())
+        .map(|l| l.chars().map(|c| c as u8 - b'0').collect())
         .collect();
     let width = trees[0].len();
     let height = trees.len();
