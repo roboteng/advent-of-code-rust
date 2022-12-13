@@ -203,7 +203,7 @@ pub fn part_one(input: &str) -> Option<u32> {
     Some(inspections[len - 1] * inspections[len - 2])
 }
 
-pub fn part_two(input: &str) -> Option<u32> {
+pub fn part_two(input: &str) -> Option<u64> {
     let (_, mut monkeys) = separated_list1(tag("\n\n"), monkey)(input).unwrap();
     let modulus = monkeys
         .iter()
@@ -219,7 +219,7 @@ pub fn part_two(input: &str) -> Option<u32> {
     let mut inspections: Vec<u32> = monkeys.iter().map(|monkey| monkey.inspections).collect();
     inspections.sort();
     let len = inspections.len();
-    Some(inspections[len - 1] * inspections[len - 2])
+    Some(inspections[len - 1] as u64 * inspections[len - 2] as u64)
 }
 
 fn main() {
