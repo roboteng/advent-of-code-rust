@@ -9,13 +9,13 @@ use nom::{
     IResult,
 };
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Ord)]
 enum PacketItem {
     Value(u32),
     SubPacket(Packet),
 }
 
-#[derive(Debug, PartialEq, PartialOrd, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 struct Packet {
     items: Vec<PacketItem>,
 }
@@ -97,7 +97,22 @@ pub fn part_one(input: &str) -> Option<u32> {
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
-    None
+    let (_, packets) = separated_list1(multispace1, packet)(input).unwrap();
+    let (_, additional_packets) = separated_list1(tag(","), packet)("[[2]],[[6]]").unwrap();
+    let mut packets = [packets, additional_packets.clone()].concat();
+    packets.sort();
+    let k: usize = packets
+        .iter()
+        .enumerate()
+        .filter_map(|(i, p)| {
+            if *p == additional_packets[0] || *p == additional_packets[1] {
+                Some(i + 1)
+            } else {
+                None
+            }
+        })
+        .product();
+    Some(k as u32)
 }
 
 fn main() {
@@ -141,6 +156,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let input = advent_of_code::read_file("examples", 13);
-        assert_eq!(part_two(&input), None);
+        assert_eq!(part_two(&input), Some(140));
     }
 }
