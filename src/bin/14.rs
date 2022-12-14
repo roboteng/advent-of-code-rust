@@ -9,7 +9,14 @@ use nom::{
 };
 
 pub fn part_one(input: &str) -> Option<u32> {
-    None
+    let (input, points) = all_line_segments(input).unwrap();
+    let mut scene = Scene::new(points).unwrap();
+    let mut count = 0;
+    while scene.drop_sand() {
+        count += 1;
+    }
+    println!("{scene}");
+    Some(count)
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
@@ -22,16 +29,17 @@ fn main() {
     advent_of_code::solve!(2, part_two, input);
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 struct Point {
     x: u32,
     y: u32,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Material {
     Rock,
     SandGenerator,
+    Sand,
 }
 
 #[derive(Debug)]
@@ -86,6 +94,69 @@ impl Scene {
     fn at_mut(&mut self, pos: Point) -> &mut Option<Material> {
         &mut self.things[pos.y as usize][diff(pos.x, self.min_x) as usize]
     }
+
+    fn drop_sand(&mut self) -> bool {
+        let mut point = Point { x: 500, y: 0 };
+        let mut placed = false;
+        loop {
+            let options = self.options(point);
+            let options = (
+                options.0.map(|pos| (pos, self.at(pos))),
+                options.1.map(|pos| (pos, self.at(pos))),
+                options.2.map(|pos| (pos, self.at(pos))),
+            );
+            let next_move = match options {
+                (_, Some((pos, None)), _) => Some(pos),
+                (Some((pos, None)), Some((_, Some(_))), _) => Some(pos),
+                (Some((_, Some(_))), Some((_, Some(_))), Some((pos, None))) => Some(pos),
+                (Some((_, Some(_))), Some((_, Some(_))), Some((_, Some(_)))) => None,
+                _ => break,
+            };
+            if let Some(pos) = next_move {
+                point = pos;
+            } else {
+                *self.at_mut(point) = Some(Material::Sand);
+                placed = true;
+                break;
+            }
+        }
+        placed
+    }
+
+    fn options(&self, pos: Point) -> (Option<Point>, Option<Point>, Option<Point>) {
+        if pos.y + 1 > self.max_y {
+            (None, None, None)
+        } else {
+            let bl = if pos.x - 1 >= self.min_x {
+                Some(Point {
+                    x: pos.x - 1,
+                    y: pos.y + 1,
+                })
+            } else {
+                None
+            };
+            let down = Some(Point {
+                x: pos.x,
+                y: pos.y + 1,
+            });
+            let br = if pos.x + 1 <= self.max_x {
+                Some(Point {
+                    x: pos.x + 1,
+                    y: pos.y + 1,
+                })
+            } else {
+                None
+            };
+            (bl, down, br)
+        }
+    }
+
+    fn is_empty_at(&self, pos: Point) -> Option<Point> {
+        match self.at(pos) {
+            Some(_) => None,
+            None => Some(pos),
+        }
+    }
 }
 
 fn points_between(start: &Point, end: &Point) -> Option<Vec<Point>> {
@@ -119,17 +190,15 @@ impl Display for Scene {
         let lines = self
             .things
             .iter()
-            .enumerate()
-            .map(|(y, line)| {
-                let k = line
-                    .iter()
+            .map(|line| {
+                line.iter()
                     .map(|spot| match spot {
                         Some(Material::Rock) => '#',
                         Some(Material::SandGenerator) => '+',
+                        Some(Material::Sand) => 'o',
                         None => '.',
                     })
-                    .collect::<String>();
-                format!("{y} {k}")
+                    .collect::<String>()
             })
             .collect::<Vec<String>>();
 
@@ -159,20 +228,29 @@ mod tests {
     use super::*;
 
     #[test]
+    fn drop_sand() {
+        let input = advent_of_code::read_file("examples", 14);
+        let (_, lines) = all_line_segments(input.as_str()).unwrap();
+        let mut scene = Scene::new(lines).unwrap();
+        scene.drop_sand();
+        assert_eq!(*scene.at(Point { x: 500, y: 8 }), Some(Material::Sand))
+    }
+
+    #[test]
     fn draw_scene() {
         let input = advent_of_code::read_file("examples", 14);
         let (_, lines) = all_line_segments(input.as_str()).unwrap();
         let scene = Scene::new(lines).unwrap();
-        let expected = "0 ......+...
-1 ..........
-2 ..........
-3 ..........
-4 ....#...##
-5 ....#...#.
-6 ..###...#.
-7 ........#.
-8 ........#.
-9 #########.";
+        let expected = "......+...
+..........
+..........
+..........
+....#...##
+....#...#.
+..###...#.
+........#.
+........#.
+#########.";
         assert_eq!(format!("{scene}"), expected);
     }
 
@@ -203,7 +281,7 @@ mod tests {
     #[test]
     fn test_part_one() {
         let input = advent_of_code::read_file("examples", 14);
-        assert_eq!(part_one(&input), None);
+        assert_eq!(part_one(&input), Some(24));
     }
 
     #[test]
