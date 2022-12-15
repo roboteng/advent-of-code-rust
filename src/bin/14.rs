@@ -10,6 +10,7 @@ use nom::{
 
 pub fn part_one(input: &str) -> Option<u32> {
     let (input, points) = all_line_segments(input).unwrap();
+    assert!(input.is_empty());
     let mut scene = Scene::new(points).unwrap();
     let mut count = 0;
     while scene.drop_sand() {
@@ -20,7 +21,15 @@ pub fn part_one(input: &str) -> Option<u32> {
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
-    None
+    let (input, points) = all_line_segments(input).unwrap();
+    assert!(input.is_empty());
+    let mut scene = Scene::new_2(points).unwrap();
+    let mut count = 0;
+    while scene.drop_sand() {
+        count += 1;
+    }
+    println!("{scene}");
+    Some(count)
 }
 
 fn main() {
@@ -38,7 +47,6 @@ struct Point {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Material {
     Rock,
-    SandGenerator,
     Sand,
 }
 
@@ -53,38 +61,74 @@ struct Scene {
 impl Scene {
     fn new(lines: Vec<Vec<Point>>) -> Option<Self> {
         let points = lines.iter().flatten().collect::<Vec<&Point>>();
-        let min_x = points.iter().map(|p| p.x).min()?;
-        let max_x = points.iter().map(|p| p.x).max()?;
-        let max_y = points.iter().map(|p| p.y).max()?;
-        let mut things = Vec::new();
-        things.resize(max_y as usize + 1, {
-            let mut v = Vec::new();
-            v.resize((max_x - min_x + 1) as usize, None);
-            v
-        });
+
         let mut ret = Self {
-            min_x,
-            max_x,
-            max_y,
-            things,
+            min_x: points.iter().map(|p| p.x).min()?,
+            max_x: points.iter().map(|p| p.x).max()?,
+            max_y: points.iter().map(|p| p.y).max()?,
+            things: Vec::new(),
+        };
+        ret.set_up_scene();
+
+        ret.draw_lines(lines);
+
+        Some(ret)
+    }
+
+    fn new_2(lines: Vec<Vec<Point>>) -> Option<Self> {
+        let points = lines.iter().flatten().collect::<Vec<&Point>>();
+
+        let mut ret = Self {
+            min_x: points.iter().map(|p| p.x).min()?,
+            max_x: points.iter().map(|p| p.x).max()?,
+            max_y: points.iter().map(|p| p.y).max()?,
+            things: Vec::new(),
         };
 
+        ret.max_y += 2;
+
+        ret.min_x = ret.min_x.min(500 - ret.max_y - 1);
+        ret.max_x = ret.max_x.max(500 + ret.max_y + 1);
+
+        ret.set_up_scene();
+
+        ret.draw_lines(lines);
+        let floor = vec![vec![
+            Point {
+                x: ret.min_x,
+                y: ret.max_y,
+            },
+            Point {
+                x: ret.max_x,
+                y: ret.max_y,
+            },
+        ]];
+        ret.draw_lines(floor);
+
+        Some(ret)
+    }
+
+    fn set_up_scene(&mut self) {
+        self.things.resize(self.max_y as usize + 1, {
+            let mut v = Vec::new();
+            v.resize((self.max_x - self.min_x + 1) as usize, None);
+            v
+        });
+    }
+
+    fn draw_lines(&mut self, lines: Vec<Vec<Point>>) {
         for segments in lines {
             let mut _lines = segments.iter().peekable();
             while let Some(start) = _lines.next() {
                 if let Some(&end) = _lines.peek() {
                     if let Some(points) = points_between(start, end) {
                         for point in points {
-                            *ret.at_mut(point) = Some(Material::Rock)
+                            *self.at_mut(point) = Some(Material::Rock)
                         }
                     }
                 }
             }
         }
-
-        *ret.at_mut(Point { x: 500, y: 0 }) = Some(Material::SandGenerator);
-
-        Some(ret)
     }
 
     fn at(&self, pos: Point) -> &Option<Material> {
@@ -97,6 +141,9 @@ impl Scene {
 
     fn drop_sand(&mut self) -> bool {
         let mut point = Point { x: 500, y: 0 };
+        if self.at(point).is_some() {
+            return false;
+        }
         let mut placed = false;
         loop {
             let options = self.options(point);
@@ -150,13 +197,6 @@ impl Scene {
             (bl, down, br)
         }
     }
-
-    fn is_empty_at(&self, pos: Point) -> Option<Point> {
-        match self.at(pos) {
-            Some(_) => None,
-            None => Some(pos),
-        }
-    }
 }
 
 fn points_between(start: &Point, end: &Point) -> Option<Vec<Point>> {
@@ -187,20 +227,25 @@ fn points_between(start: &Point, end: &Point) -> Option<Vec<Point>> {
 
 impl Display for Scene {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let lines = self
+        let generator = 500 - self.min_x;
+        let mut lines = self
             .things
             .iter()
             .map(|line| {
                 line.iter()
                     .map(|spot| match spot {
                         Some(Material::Rock) => '#',
-                        Some(Material::SandGenerator) => '+',
                         Some(Material::Sand) => 'o',
                         None => '.',
                     })
                     .collect::<String>()
             })
             .collect::<Vec<String>>();
+        if self.things[0][generator as usize].is_none() {
+            unsafe {
+                (lines[0].as_bytes_mut())[generator as usize] = b'+';
+            }
+        }
 
         write!(f, "{}", lines.join("\n"))
     }
@@ -287,6 +332,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let input = advent_of_code::read_file("examples", 14);
-        assert_eq!(part_two(&input), None);
+        assert_eq!(part_two(&input), Some(93));
     }
 }
