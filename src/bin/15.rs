@@ -91,7 +91,7 @@ pub fn part_one(input: &str) -> Option<u32> {
 
 pub fn part_two(input: &str) -> Option<u128> {
     let sensors: Vec<Sensor> = input.lines().map(|line| sensor(line).unwrap().1).collect();
-    let range = if true { 4_000_000 } else { 20 };
+    let range = if false { 4_000_000 } else { 20 };
 
     let mut rects = vec![Rect::new(0, range + 1, 0, range + 1).unwrap()];
     while !rects.is_empty() {
@@ -102,7 +102,7 @@ pub fn part_two(input: &str) -> Option<u128> {
                 None => {
                     let point = rect.points()[0];
                     println!("{point:?}");
-                    return Some((point.x as u128 * 4_000_000 + point.y as u128));
+                    return Some(point.x as u128 * 4_000_000 + point.y as u128);
                 }
             }
         }

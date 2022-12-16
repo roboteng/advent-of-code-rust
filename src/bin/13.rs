@@ -9,7 +9,7 @@ use nom::{
     IResult,
 };
 
-#[derive(Debug, PartialEq, Eq, Clone, Ord)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 enum PacketItem {
     Value(u32),
     SubPacket(Packet),
@@ -50,6 +50,12 @@ impl PartialOrd for PacketItem {
                 Some(a.items.len().cmp(&b.items.len()))
             }
         }
+    }
+}
+
+impl Ord for PacketItem {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap()
     }
 }
 
