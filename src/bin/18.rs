@@ -1,5 +1,6 @@
 use std::collections::{BTreeSet, HashMap};
 
+use itertools::Itertools;
 use nom::{bytes::complete::tag, character::complete, multi::separated_list1, IResult};
 
 pub fn part_one(input: &str) -> Option<u32> {
@@ -32,6 +33,7 @@ fn count_sides(cubes: Vec<Cube>) -> usize {
     sides
 }
 
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 enum Block {
     Empty,
     Bounded,
@@ -50,12 +52,14 @@ pub fn part_two(input: &str) -> Option<u32> {
 
 fn fill_cavities(cubes: Vec<Cube>) -> Vec<Cube> {
     let boundries = find_trivial_boundries(&cubes);
+    dbg!(boundries.slots.len());
     let boundries = propegate_unbounded(boundries);
     let cubes = fill_bounded_sections(boundries);
 
     cubes
 }
 
+#[derive(Debug, Clone)]
 struct Space {
     min_x: u32,
     max_x: u32,
@@ -85,7 +89,45 @@ impl Space {
         self.max_y = self.max_y.max(cube.y);
         self.min_z = self.min_z.min(cube.y);
         self.max_z = self.max_z.max(cube.y);
-        self.slots.entry(cube);
+        self.slots.entry(cube).or_insert(block);
+    }
+
+    fn get(&self, cube: Cube) -> Block {
+        *self.slots.get(&cube).or(Some(&Block::Empty)).unwrap()
+    }
+}
+
+struct SpaceIterator {
+    space: Space,
+    i: u32,
+}
+
+impl Iterator for SpaceIterator {
+    type Item = (Cube, Block);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let dx = self.space.max_x - self.space.min_x;
+        let dy = self.space.max_y - self.space.min_y;
+        let dz = self.space.max_z - self.space.min_z;
+        if self.i >= dx * dy * dz {
+            return None;
+        }
+        let x = self.i % dx + self.space.min_x;
+        let y = self.i % (dx * dy) / dx + self.space.min_y;
+        let z = self.i / (dx * dy) + self.space.min_z;
+        let cube = Cube { x, y, z };
+        self.i += 1;
+        Some((cube, self.space.get(cube)))
+    }
+}
+
+impl IntoIterator for Space {
+    type Item = (Cube, Block);
+
+    type IntoIter = SpaceIterator;
+
+    fn into_iter(self) -> Self::IntoIter {
+        SpaceIterator { i: 0, space: self }
     }
 }
 
@@ -97,33 +139,88 @@ enum Line {
 }
 
 fn find_trivial_boundries(cubes: &[Cube]) -> Space {
-    let min_x = 0;
-    let max_x = cubes.iter().map(|c| c.x).max().unwrap();
-    let min_y = 0;
-    let max_y = cubes.iter().map(|c| c.y).max().unwrap();
-    let min_z = 0;
-    let max_z = cubes.iter().map(|c| c.z).max().unwrap();
-
     let mut data_structure = Space::new();
     let line_sets = create_lines(&cubes);
     for (line, set) in line_sets {
         for i in *set.first().unwrap()..=*set.last().unwrap() {
             match line {
-                Line::XY { x, y } => {}
-                Line::XZ { x, z } => todo!(),
-                Line::YZ { y, z } => todo!(),
+                Line::XY { x, y } => data_structure.insert(Cube { x, y, z: i }, Block::Bounded),
+                Line::XZ { x, z } => data_structure.insert(Cube { x, y: i, z }, Block::Bounded),
+                Line::YZ { y, z } => data_structure.insert(Cube { x: i, y, z }, Block::Bounded),
             }
         }
     }
-    Space::new()
+    for cube in cubes {
+        data_structure.insert(*cube, Block::Boundary)
+    }
+    data_structure
 }
 
-fn propegate_unbounded(space: Space) -> Space {
-    Space::new()
+fn propegate_unbounded(mut space: Space) -> Space {
+    let mut changed = true;
+    for _ in 0..4 {
+        println!("Looping");
+        let mut processed_space = space.clone();
+        changed = false;
+        for voxel in space
+            .clone()
+            .into_iter()
+            .filter(|(_, b)| *b == Block::Bounded)
+        {
+            if neighbors(voxel.0)
+                .iter()
+                .any(|c| space.get(*c) == Block::Empty)
+            {
+                processed_space.insert(voxel.0, Block::Empty);
+                println!("Found false cavity at {:?}", voxel.0);
+                changed = true;
+            }
+        }
+        space = processed_space;
+    }
+    space
 }
 
 fn fill_bounded_sections(space: Space) -> Vec<Cube> {
-    vec![]
+    space
+        .into_iter()
+        .filter_map(|(c, b)| if b == Block::Empty { None } else { Some(c) })
+        .collect_vec()
+}
+
+fn neighbors(cube: Cube) -> Vec<Cube> {
+    vec![
+        Cube {
+            x: cube.x + 1,
+            y: cube.y,
+            z: cube.z,
+        },
+        Cube {
+            x: cube.x - 1,
+            y: cube.y,
+            z: cube.z,
+        },
+        Cube {
+            x: cube.x,
+            y: cube.y + 1,
+            z: cube.z,
+        },
+        Cube {
+            x: cube.x,
+            y: cube.y - 1,
+            z: cube.z,
+        },
+        Cube {
+            x: cube.x,
+            y: cube.y,
+            z: cube.z + 1,
+        },
+        Cube {
+            x: cube.x,
+            y: cube.y,
+            z: cube.z - 1,
+        },
+    ]
 }
 
 fn main() {
@@ -132,7 +229,7 @@ fn main() {
     advent_of_code::solve!(2, part_two, input);
 }
 
-#[derive(Debug, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 struct Cube {
     x: u32,
     y: u32,
@@ -203,6 +300,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let input = advent_of_code::read_file("examples", 18);
-        assert_eq!(part_two(&input), None);
+        assert_eq!(part_two(&input), Some(58));
     }
 }
